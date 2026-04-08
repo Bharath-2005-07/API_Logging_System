@@ -1,0 +1,138 @@
+/* Logs Page Styles */
+
+.logs-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.logs-container h1 {
+  color: #333;
+  margin-bottom: 2rem;
+}
+
+.logs-table {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.logs-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.logs-table thead {
+  background: #f5f5f5;
+}
+
+.logs-table th {
+  padding: 1rem;
+  text-align: left;
+  color: #666;
+  font-weight: 600;
+  border-bottom: 2px solid #ddd;
+}
+
+.logs-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.logs-table tbody tr:hover {
+  background: #f9f9f9;
+}
+
+.method {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.method.GET {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.method.POST {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.method.PUT {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.method.DELETE {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.status {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.status-200,
+.status-201 {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-400,
+.status-404 {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.status-500 {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.ipfs-hash {
+  font-family: monospace;
+  color: #667eea;
+  font-size: 0.9rem;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.pagination button {
+  padding: 0.5rem 1rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .logs-table {
+    overflow-x: auto;
+  }
+
+  .logs-table table {
+    font-size: 0.9rem;
+  }
+}

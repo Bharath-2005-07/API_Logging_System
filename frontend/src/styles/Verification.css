@@ -1,0 +1,125 @@
+/* Verification Styles */
+
+.verification-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.verification-container h1 {
+  color: #333;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.verification-form {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #555;
+  font-weight: 500;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: monospace;
+}
+
+.verification-form button {
+  width: 100%;
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.verification-form button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.verification-result {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid;
+}
+
+.verification-result.valid {
+  border-left-color: #2e7d32;
+}
+
+.verification-result.invalid {
+  border-left-color: #c62828;
+}
+
+.verification-result h2 {
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+}
+
+.verification-result.valid h2 {
+  color: #2e7d32;
+}
+
+.verification-result.invalid h2 {
+  color: #c62828;
+}
+
+.log-details {
+  display: grid;
+  gap: 1rem;
+}
+
+.detail {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.detail span {
+  color: #666;
+  font-weight: 500;
+}
+
+.detail strong {
+  color: #333;
+  word-break: break-all;
+}
+
+.detail strong.hash {
+  font-family: monospace;
+  color: #667eea;
+  font-size: 0.9rem;
+}
+
+.error-message {
+  background: #ffebee;
+  color: #c62828;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 2rem;
+  border-left: 4px solid #c62828;
+}

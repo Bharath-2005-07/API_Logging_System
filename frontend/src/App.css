@@ -1,0 +1,16 @@
+.app {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 40px 20px;
+  background-color: #fff;
+}
