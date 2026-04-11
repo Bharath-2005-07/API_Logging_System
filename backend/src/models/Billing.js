@@ -31,12 +31,21 @@ const billingSchema = new mongoose.Schema({
   },
   costPerRequest: {
     type: Number,
-    default: 0.001,
+    default: 2.00, // Updated to $2 per request
   },
   status: {
     type: String,
     enum: ['pending', 'paid', 'overdue', 'cancelled'],
     default: 'pending',
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'paid', 'overdue', 'cancelled'],
+    default: 'pending',
+  },
+  amountPaid: {
+    type: Number,
+    default: 0,
   },
   invoiceNumber: String,
   paymentMethod: {

@@ -83,16 +83,24 @@
 
 .auth-link {
   text-align: center;
-  margin-top: 1rem;
-  color: #666;
+  margin-top: 1.5rem;
+  color: #333;
+  font-size: 0.95rem;
 }
 
 .auth-link a {
-  color: #667eea;
+  display: inline-block;
+  color: #fff;
+  background: #e74c3c;
   text-decoration: none;
   font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: all 0.3s ease;
 }
 
 .auth-link a:hover {
-  text-decoration: underline;
+  background: #c0392b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
 }

@@ -46,10 +46,23 @@
 }
 
 .register-link {
-  background: white;
-  color: #667eea;
-  padding: 0.5rem 1rem;
+  background: #e74c3c;
+  color: white;
+  padding: 0.6rem 1.5rem;
   border-radius: 4px;
+  font-weight: 600;
+  display: inline-block;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.register-link:hover {
+  background: #c0392b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
 }
 
 .user-menu {

@@ -34,7 +34,8 @@ router.post('/register', async (req, res) => {
       email,
       name,
       passwordHash: password,
-      walletAddress: walletAddress || null,
+      // Only set walletAddress if provided (avoid null unique constraint issues)
+      ...(walletAddress && { walletAddress }),
       apiKey: crypto.randomBytes(16).toString('hex'),
     });
 
