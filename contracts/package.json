@@ -6,8 +6,6 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
-    "deploy": "hardhat run scripts/deploy.js --network sepolia",
-    "deploy:mainnet": "hardhat run scripts/deploy.js --network mainnet",
     "verify": "hardhat verify",
     "console": "hardhat console --network sepolia",
     "gas-report": "REPORT_GAS=true hardhat test",

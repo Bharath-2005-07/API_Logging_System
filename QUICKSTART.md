@@ -62,22 +62,6 @@ npm start
 # App: http://localhost:3000
 ```
 
-## Docker Setup
-
-```bash
-# Build and run all services
-docker-compose up -d
-
-# Check status
-docker-compose ps
-
-# View logs
-docker-compose logs -f backend
-
-# Stop all services
-docker-compose down
-```
-
 ## Running the Full Stack
 
 ### Terminal 1 - Backend
@@ -132,15 +116,15 @@ curl http://localhost:5000/api/logs \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-### Deploy Smart Contract
+### Smart Contract Commands (Optional)
 ```bash
 cd contracts
 
-# Sepolia Testnet
-npx hardhat run scripts/deploy.js --network sepolia
+# Compile contract
+npx hardhat compile
 
-# Mainnet (⚠️ use real money!)
-npx hardhat run scripts/deploy.js --network mainnet
+# Run tests
+npx hardhat test
 
 # Verify on Etherscan
 npx hardhat verify --network sepolia ADDRESS_HERE
@@ -165,17 +149,12 @@ npm run build
 # Backend (no special build needed, just NODE_ENV=production)
 cd backend
 NODE_ENV=production npm start
-
-# Deploy frontend to IPFS
-cd frontend
-npm run build
-ipfs add -r build
 ```
 
 ## Verification Checklist
 
 - [ ] MongoDB running and connected
-- [ ] Smart contract deployed (address in .env)
+- [ ] Smart contract address configured if blockchain write is required
 - [ ] IPFS credentials configured
 - [ ] Backend starts without errors
 - [ ] Frontend loads at http://localhost:3000

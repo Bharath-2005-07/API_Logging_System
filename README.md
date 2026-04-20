@@ -101,7 +101,6 @@ blockchain-api-logging/
 │   ├── SMART_CONTRACT.md
 │   └── SETUP_GUIDE.md
 ├── .env.example               # Environment Variables Template
-├── docker-compose.yml         # Docker Setup
 └── README.md                  # This File
 ```
 
@@ -233,7 +232,6 @@ Confirms authenticity
 cd contracts
 npx hardhat compile          # Compile contracts
 npx hardhat test            # Run tests
-npx hardhat deploy          # Deploy to testnet
 npx hardhat verify          # Verify on Etherscan
 ```
 
@@ -254,17 +252,12 @@ npm install                # Install dependencies
 npm start                  # Start development server
 npm run build              # Build for production
 npm test                   # Run tests
-npm run deploy             # Deploy to IPFS
 ```
 
 ### Full Stack
 ```bash
 # Start all services (requires separate terminals or pm2)
 npm run start:all         # Not available yet - use individual commands
-
-# Or use Docker
-docker-compose up -d      # Start all services with Docker
-docker-compose down       # Stop all services
 ```
 
 ## 🔐 Security Features
