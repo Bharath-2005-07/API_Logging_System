@@ -6,11 +6,15 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const mongoSanitize = require('express-mongo-sanitize');
 const compression = require('compression');
+
+// Load environment variables from root .env file before route/service imports.
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 // Route imports
 const authRoutes = require('./routes/auth.routes');
@@ -24,10 +28,6 @@ const ipfsRoutes = require('./routes/ipfs.routes');
 const errorHandler = require('./middleware/errorHandler');
 const { authenticateToken } = require('./middleware/auth');
 const { connectDatabase } = require('./utils/database');
-const path = require('path');
-
-// Load environment variables from root .env file
-dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const app = express();
 const PORT = process.env.BACKEND_PORT || 5000;

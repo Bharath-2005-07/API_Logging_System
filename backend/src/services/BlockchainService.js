@@ -12,11 +12,15 @@ class BlockchainService {
       this.provider = process.env.ETHEREUM_RPC_URL 
         ? new ethers.JsonRpcProvider(process.env.ETHEREUM_RPC_URL)
         : null;
-      
-      // Only initialize wallet if valid private key is provided
-      if (process.env.PRIVATE_KEY && process.env.PRIVATE_KEY.length === 66) {
+
+      const rawPrivateKey = (process.env.PRIVATE_KEY || '').trim();
+      const normalizedPrivateKey = rawPrivateKey.startsWith('0x') ? rawPrivateKey : `0x${rawPrivateKey}`;
+      const isValidPrivateKey = /^0x[a-fA-F0-9]{64}$/.test(normalizedPrivateKey);
+
+      // Initialize wallet only if a valid private key is provided.
+      if (isValidPrivateKey) {
         this.signer = this.provider 
-          ? new ethers.Wallet(process.env.PRIVATE_KEY, this.provider)
+          ? new ethers.Wallet(normalizedPrivateKey, this.provider)
           : null;
       } else {
         this.signer = null;
@@ -31,14 +35,49 @@ class BlockchainService {
           APILoggerABI,
           this.signer
         );
+        this.registrationChecked = false;
       } else {
         this.contract = null;
+        this.registrationChecked = false;
       }
     } catch (error) {
       console.warn('⚠️  BlockchainService initialization error:', error.message);
       this.provider = null;
       this.signer = null;
       this.contract = null;
+    }
+  }
+
+  /**
+   * Convert app-level IPFS CID/string to on-chain bytes32 key.
+   * If already bytes32 hex, keep it as-is.
+   */
+  toOnChainIpfsKey(ipfsHash) {
+    if (typeof ipfsHash === 'string' && /^0x[a-fA-F0-9]{64}$/.test(ipfsHash)) {
+      return ipfsHash;
+    }
+    return ethers.keccak256(ethers.toUtf8Bytes(String(ipfsHash)));
+  }
+
+  /**
+   * Ensure contract signer wallet is registered once.
+   */
+  async ensureSignerRegistered() {
+    if (!this.contract || !this.signer || this.registrationChecked) {
+      return;
+    }
+
+    try {
+      const exists = await this.contract.userExists(this.signer.address);
+      if (!exists) {
+        const serviceUserId = process.env.BLOCKCHAIN_SERVICE_USER_ID || 'backend_service';
+        const tx = await this.contract.registerUser(serviceUserId);
+        await tx.wait();
+        console.log(`[Blockchain] Service wallet registered as user: ${serviceUserId}`);
+      }
+      this.registrationChecked = true;
+    } catch (error) {
+      console.warn('[Blockchain] Could not ensure signer registration:', error.message);
     }
   }
 
@@ -51,9 +90,12 @@ class BlockchainService {
         console.warn('[Blockchain] Contract not initialized. Skipping blockchain storage.');
         return null;
       }
+
+      await this.ensureSignerRegistered();
+      const onChainIpfsKey = this.toOnChainIpfsKey(ipfsHash);
       
       const tx = await this.contract.storeLog(
-        ipfsHash,
+        onChainIpfsKey,
         signature,
         userId,
         endpoint,
@@ -80,8 +122,9 @@ class BlockchainService {
       if (!this.contract) {
         return null;
       }
+      const onChainIpfsKey = this.toOnChainIpfsKey(ipfsHash);
       
-      const log = await this.contract.getLog(ipfsHash);
+      const log = await this.contract.getLog(onChainIpfsKey);
       return log;
     } catch (error) {
       console.error('[Blockchain] Error retrieving log:', error.message);
@@ -97,8 +140,9 @@ class BlockchainService {
       if (!this.contract) {
         return null;
       }
+      const onChainIpfsKey = this.toOnChainIpfsKey(ipfsHash);
       
-      const tx = await this.contract.verifyLog(ipfsHash);
+      const tx = await this.contract.verifyLog(onChainIpfsKey);
       const receipt = await tx.wait();
       console.log('[Blockchain] Log verified:', receipt.hash);
       return receipt.hash;

@@ -35,4 +35,40 @@ router.get('/logs', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/blockchain/verify/:ipfsHash
+ * Verify whether log exists on-chain for provided IPFS hash/CID
+ */
+router.get('/verify/:ipfsHash', async (req, res) => {
+  try {
+    const { ipfsHash } = req.params;
+    const onChainKey = BlockchainService.toOnChainIpfsKey(ipfsHash);
+    const log = await BlockchainService.getLog(ipfsHash);
+
+    if (!log) {
+      return successResponse(res, {
+        exists: false,
+        onChainKey,
+      }, 'Log not found on blockchain');
+    }
+
+    successResponse(res, {
+      exists: true,
+      onChainKey,
+      ipfsHashOnChain: log.ipfsHash ? log.ipfsHash.toString() : null,
+      userId: log.userId,
+      endpoint: log.endpoint,
+      statusCode: Number(log.statusCode),
+      requestSize: Number(log.requestSize),
+      responseSize: Number(log.responseSize),
+      verified: log.verified,
+      timestamp: Number(log.timestamp),
+      transactionHash: null,
+      blockNumber: null,
+    }, 'Log found on blockchain');
+  } catch (error) {
+    errorResponse(res, error.message, 500, error);
+  }
+});
+
 module.exports = router;

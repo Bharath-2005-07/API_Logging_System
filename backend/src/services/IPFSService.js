@@ -11,6 +11,9 @@ class IPFSService {
     this.host = process.env.IPFS_HOST || 'ipfs.infura.io';
     this.port = process.env.IPFS_PORT || 5001;
     this.protocol = process.env.IPFS_PROTOCOL || 'https';
+    this.pinataJwt = process.env.PINATA_JWT || '';
+    this.pinataApiKey = process.env.PINATA_API_KEY || '';
+    this.pinataApiSecret = process.env.PINATA_API_SECRET || '';
     this.auth = this.getAuthHeader();
   }
 
@@ -29,6 +32,24 @@ class IPFSService {
     return {
       'Authorization': 'Basic ' + Buffer.from(`${projectId}:${projectSecret}`).toString('base64'),
     };
+  }
+
+  /**
+   * Get Pinata auth headers (JWT preferred)
+   */
+  getPinataHeaders() {
+    if (this.pinataJwt) {
+      return { Authorization: `Bearer ${this.pinataJwt}` };
+    }
+
+    if (this.pinataApiKey && this.pinataApiSecret) {
+      return {
+        pinata_api_key: this.pinataApiKey,
+        pinata_secret_api_key: this.pinataApiSecret,
+      };
+    }
+
+    return null;
   }
 
   /**
@@ -73,14 +94,48 @@ class IPFSService {
   }
 
   /**
+   * Upload using Pinata with auth
+   */
+  async uploadToPinata(fileContent, filename) {
+    const pinataHeaders = this.getPinataHeaders();
+    if (!pinataHeaders) {
+      return null;
+    }
+
+    const form = new FormData();
+    form.append('file', fileContent, filename);
+
+    const response = await axios.post(
+      'https://api.pinata.cloud/pinning/pinFileToIPFS',
+      form,
+      {
+        headers: {
+          ...pinataHeaders,
+          ...form.getHeaders(),
+        },
+        timeout: 30000,
+      }
+    );
+
+    const hash = response.data.IpfsHash || response.data.Hash;
+    console.log(`[IPFS] File uploaded via Pinata: ${hash}`);
+    return hash;
+  }
+
+  /**
    * Upload file to IPFS
    */
   async uploadFile(fileContent, filename = 'log.json') {
     try {
-      // If no auth available, use public gateway
+      // Prefer Pinata if credentials are configured.
+      const pinataHeaders = this.getPinataHeaders();
+      if (pinataHeaders) {
+        return await this.uploadToPinata(fileContent, filename);
+      }
+
+      // If no Infura auth available either, use testing fallback.
       if (!this.auth) {
-        console.warn('IPFS auth not configured. Using public gateway. For production, set INFURA_IPFS_PROJECT_ID and INFURA_IPFS_PROJECT_SECRET');
-        // Use Pinata public gateway as fallback
+        console.warn('IPFS auth not configured. Using public gateway fallback. Configure PINATA_JWT or INFURA_IPFS credentials for real uploads.');
         return this.uploadToPublicGateway(fileContent, filename);
       }
 
@@ -99,8 +154,16 @@ class IPFSService {
       console.log(`[IPFS] File uploaded: ${hash}`);
       return hash;
     } catch (error) {
+      // If Infura upload fails due auth/network, try Pinata as fallback.
+      try {
+        const hash = await this.uploadToPinata(fileContent, filename);
+        if (hash) return hash;
+      } catch (pinataError) {
+        console.warn('[IPFS] Pinata fallback failed:', pinataError.message);
+      }
+
       console.error('[IPFS] Upload failed:', error.message);
-      throw new Error(`IPFS upload failed: ${error.message}`);
+      return this.uploadToPublicGateway(fileContent, filename);
     }
   }
 

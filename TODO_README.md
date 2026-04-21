@@ -1,169 +1,241 @@
-# TODO README - Project Demo Setup and Validation
+# Working README - Architecture, Functionality, and Demo Guide
 
-This file is a future reference checklist for running and demonstrating the project reliably.
+This document explains what the project does, why each framework/tool is used, how the major code modules work, and how to present the system clearly in a viva/demo.
 
-## 1. Goal
+## 1. Project Objective
 
-Prepare the project for demonstration of:
-- secure API logging
-- tamper resistance
-- transparency and verification
-- immutable proof via blockchain
+Build a secure API usage logging system where each log can be:
+1. hashed and signed for integrity and authenticity
+2. stored off-chain in IPFS for content retrieval
+3. anchored on blockchain for tamper-evident proof
+4. viewed and verified from a web dashboard
 
-## 2. Accounts Required (Demo Only)
+## 2. Why These Tools/Frameworks Were Chosen
 
-Create these once:
-1. MetaMask wallet (demo wallet only, not personal main wallet)
-2. Alchemy account (Sepolia RPC URL)
-3. Infura account (IPFS Project ID and Secret)
-4. Sepolia faucet access (for test ETH)
+### Backend
+1. Node.js + Express:
+- simple REST API development
+- easy middleware chain for auth, rate-limit, sanitization
+- large ecosystem for blockchain/IPFS integrations
 
-Optional:
-1. Etherscan account and API key (for contract verification)
+2. Mongoose + MongoDB:
+- stores app-facing structured log records and billing
+- supports indexes for filtered dashboard queries
+- caches metadata even when external services are slow
 
-## 3. One-Time Local Preparation
+3. Ethers.js:
+- sends transactions and reads smart contract state on Sepolia
+- clean interface for signer/provider/contract operations
 
-From project root:
-1. Install backend dependencies
-- cd backend
-- npm install
+4. Crypto + bcrypt + JWT:
+- SHA-256 for log digest
+- RSA signatures for authenticity proof
+- bcrypt for password hashing
+- JWT for stateless API auth
 
-2. Install frontend dependencies
-- cd ..\frontend
-- npm install
+### Frontend
+1. React:
+- reusable page components (Dashboard, Logs, Billing, Verify)
+- predictable state updates and API-driven UI
 
-3. Install contract dependencies
-- cd ..\contracts
-- npm install
+2. Axios:
+- centralized API request logic and auth headers
+- error handling for backend messages
 
-4. Generate RSA signing keys
-- node generate-keys.js
+### Web3 / Storage
+1. Solidity + Hardhat:
+- APILogger contract for immutable anchoring
+- Hardhat for compile/deploy/test and Sepolia integration
 
-5. Copy generated keys to backend folder
-- source: contracts\keys\private.key
-- source: contracts\keys\public.key
-- destination: backend\keys\private.key
-- destination: backend\keys\public.key
+2. Sepolia Testnet:
+- real blockchain behavior without mainnet cost
 
-## 4. Environment Configuration
+3. IPFS (Pinata/Infura path):
+- decentralized content storage and retrieval by CID
 
-Update root .env with real values.
+## 3. High-Level Data Flow
 
-Required for blockchain and IPFS demo:
-1. ETHEREUM_RPC_URL = your Alchemy Sepolia URL
-2. PRIVATE_KEY = your demo wallet private key (0x prefixed, for backend runtime)
-3. CONTRACT_ADDRESS = deployed Sepolia contract address
-4. INFURA_IPFS_PROJECT_ID = your Infura project id
-5. INFURA_IPFS_PROJECT_SECRET = your Infura project secret
-6. REACT_APP_CONTRACT_ADDRESS = same as CONTRACT_ADDRESS
-7. REACT_APP_BACKEND_URL = http://localhost:5000
-8. JWT_SECRET = strong random string
-9. MONGODB_URI = mongodb://localhost:27017/api-logging-db
-10. PRIVATE_KEY_PATH = ./keys/private.key
-11. PUBLIC_KEY_PATH = ./keys/public.key
+1. user creates log request from frontend
+2. backend builds log payload and computes SHA-256 hash
+3. backend signs hash with RSA private key
+4. backend uploads payload to IPFS and gets CID
+5. backend converts CID to deterministic on-chain key and calls smart contract
+6. backend stores final record in MongoDB (with hash, CID, signature, tx hash)
+7. frontend shows logs and verification status
 
-Important:
-- If frontend or backend is already running, restart both after changing .env.
+## 4. Important Backend Code and Purpose
 
-## 5. Deploy Smart Contract (Sepolia)
+### 4.1 Log creation pipeline
+File: backend/src/routes/log.routes.js
 
-From project root:
-1. Go to contracts
-- cd contracts
+Purpose:
+1. validates request payload
+2. creates canonical log object
+3. generates hash and signature
+4. uploads to IPFS
+5. anchors proof on blockchain
+6. stores final record in MongoDB
+7. updates monthly billing
 
-2. Compile contract
-- npx hardhat compile
+### 4.2 Cryptographic service
+File: backend/src/services/LoggingService.js
 
-3. Deploy from hardhat console
-- npx hardhat console --network sepolia
+Purpose:
+1. generate SHA-256 log hash
+2. create RSA signature from hash
+3. verify signature during validation
+4. load key files used by signing pipeline
 
-4. In console run:
-- const F = await ethers.getContractFactory("APILogger")
-- const c = await F.deploy()
-- await c.waitForDeployment()
-- await c.getAddress()
+### 4.3 Blockchain service
+File: backend/src/services/BlockchainService.js
 
-5. Copy the deployed address and update:
-- CONTRACT_ADDRESS in .env
-- REACT_APP_CONTRACT_ADDRESS in .env
+Purpose:
+1. initialize provider/signer/contract
+2. convert app-level IPFS CID to on-chain bytes32 key (keccak256 over CID string)
+3. ensure signer wallet is registered once on contract
+4. store log proof and return transaction hash
+5. fetch and verify on-chain logs
 
-## 6. Run Project
+Note:
+Contract stores bytes32 keys. The backend now deterministically maps CID string to bytes32 key for compatibility.
 
-Start MongoDB first, then backend, then frontend.
+### 4.4 IPFS service
+File: backend/src/services/IPFSService.js
 
-1. Backend terminal
-- cd backend
-- npm start
+Purpose:
+1. support Pinata JWT/API key upload path
+2. keep Infura-style path for compatibility
+3. provide fallback behavior for test mode
+4. retrieve/pin/file stats utilities
 
-2. Frontend terminal
-- cd frontend
-- npm start
+## 5. Solidity Contract Explanation
 
-## 7. Demo Validation Flow
+File: contracts/src/APILogger.sol
 
-Follow this exact flow during presentation:
-1. Register user
-2. Login user
-3. Create log
-4. Confirm response includes:
-- logHash
-- ipfsHash
-- blockchainHash
-- signature
-5. Open verification page and verify the same log
-6. Open Sepolia explorer using blockchainHash and show transaction proof
+### 5.1 Core structs
+1. APILog:
+- on-chain log proof record (ipfsHash key, signature, timestamp, userId, endpoint, sizes, verified flag)
 
-## 8. Quick Troubleshooting
+2. APIUser:
+- registered address identity and aggregated usage stats
 
-If backend fails:
-1. Check MongoDB is running
-2. Check .env values are not placeholders
-3. Check backend\keys\private.key and backend\keys\public.key exist
-4. Check CONTRACT_ADDRESS is not zero address for blockchain demo
-5. Check wallet has Sepolia ETH for gas
+3. BillingRecord:
+- on-chain billing history model (optional analytics use)
 
-If frontend fails:
-1. Check REACT_APP_BACKEND_URL in .env
-2. Ensure backend is running on that URL
-3. Restart frontend after any .env change
+### 5.2 Key functions
+1. registerUser(string userId):
+- registers wallet identity for access control
 
-If blockchain features are disabled:
-1. Verify PRIVATE_KEY format for backend runtime is 0x prefixed
-2. Verify ETHEREUM_RPC_URL is valid and active
-3. Verify CONTRACT_ADDRESS is a deployed contract
+2. storeLog(bytes32 ipfsKey, ...):
+- writes immutable proof record
+- emits LogCreated and BillingRecorded events
 
-If IPFS upload fails:
-1. Verify INFURA_IPFS_PROJECT_ID and INFURA_IPFS_PROJECT_SECRET
-2. Check network connectivity
+3. verifyLog(bytes32 key):
+- marks an existing on-chain proof as verified
 
-## 9. When You Must Update Values
+4. getLog/getUserLogs/getLogCount:
+- read methods used for verification and dashboard stats
 
-Update .env again only when:
-1. Contract is redeployed (address changes)
-2. Wallet key is rotated
-3. RPC key or IPFS credentials are rotated/revoked
-4. You switch machine, provider, or port setup
+### 5.3 Security controls
+1. onlyOwner modifier for admin operations
+2. onlyRegisteredUser modifier before storing logs
+3. require checks on empty user/endpoint/hash inputs
 
-## 10. Free-Tier Limit Notes
+## 6. Data Models and Their Purpose
 
-Expect these limitations on free plans:
-1. RPC request and throughput limits
-2. Faucet claim rate limits
-3. IPFS upload/pinning/bandwidth limits
+### 6.1 User model
+File: backend/src/models/User.js
 
-If limits are hit:
-1. Wait for reset window or
-2. Use another project key or
-3. Upgrade provider plan
+Purpose:
+1. account identity and login credentials
+2. password hashing and secure compare
+3. optional wallet mapping and usage stats
 
-## 11. Pre-Demo Final Checklist
+### 6.2 Log model
+File: backend/src/models/Log.js
 
-1. MongoDB running
-2. Backend running
-3. Frontend running
-4. .env has real values, no placeholders
-5. Contract deployed and address updated
-6. Wallet funded with Sepolia ETH
-7. One successful create-log and verify-log test done
+Purpose:
+1. primary app-side log record
+2. stores logHash, ipfsHash, signature, blockchainHash
+3. tracks verification state and metadata
+4. indexed for fast filtering in dashboard
 
-End of file.
+### 6.3 Billing model
+File: backend/src/models/Billing.js
+
+Purpose:
+1. monthly request count and cost summary
+2. payment status/amount tracking
+3. history view for billing page
+
+## 7. Verification Modes and What They Prove
+
+1. App-level verify:
+- confirms log exists in DB and signature check passes
+
+2. IPFS verify:
+- CID retrieval confirms decentralized content storage
+
+3. Blockchain verify:
+- transaction hash + on-chain lookup proves immutable anchoring
+
+A log is fully verified only when all three are successful.
+
+## 8. Environment Variables and Why They Exist
+
+### Blockchain
+1. ETHEREUM_RPC_URL: blockchain node endpoint
+2. PRIVATE_KEY: signer wallet for transactions
+3. CONTRACT_ADDRESS: deployed contract used by backend
+4. REACT_APP_CONTRACT_ADDRESS: frontend contract reference
+
+### IPFS
+1. PINATA_JWT or PINATA_API_KEY/PINATA_API_SECRET: upload auth
+2. INFURA_IPFS_PROJECT_ID/SECRET: legacy/alternative path
+
+### App Security
+1. JWT_SECRET: auth token signing
+2. PRIVATE_KEY_PATH/PUBLIC_KEY_PATH: RSA signing keys for logs
+
+## 9. End-to-End Demo Steps (Teacher-Friendly)
+
+1. start MongoDB
+2. start backend and frontend
+3. register/login
+4. create log
+5. show generated logHash, ipfsHash, signature, blockchainHash
+6. open Verify page and verify by logHash
+7. open Sepolia explorer with blockchainHash transaction
+8. explain each trust layer (DB + IPFS + chain)
+
+## 10. Common Questions and Suggested Answers
+
+1. Why blockchain if DB already exists?
+- DB gives query speed; blockchain gives tamper-evident immutable proof.
+
+2. Why IPFS?
+- Stores full log content decentralized while chain keeps compact proof key.
+
+3. Why signatures?
+- Proves authenticity and prevents undetected modification.
+
+4. Why Sepolia not mainnet?
+- same technical workflow with lower cost for academic demo.
+
+## 11. Current Completion Status Checklist
+
+1. authentication flow working
+2. log creation + hashing + signing working
+3. IPFS upload configured via Pinata path
+4. billing updates per log working
+5. on-chain anchoring path implemented with CID-to-bytes32 mapping
+6. verify route available for app and blockchain lookup
+
+## 12. Post-Demo Security Actions
+
+1. rotate wallet private key
+2. rotate RPC keys
+3. rotate Pinata/Infura credentials
+4. never commit real .env secrets
+
+End of document.

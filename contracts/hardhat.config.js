@@ -8,8 +8,10 @@ dotenv.config({ path: '../.env' });
 
 // Helper function to get valid private key
 const getPrivateKey = () => {
-  const pk = process.env.PRIVATE_KEY;
-  // Only use if it's a valid 64-character hex string (32 bytes)
+  const rawPk = (process.env.PRIVATE_KEY || '').trim();
+  const pk = rawPk.startsWith('0x') ? rawPk.slice(2) : rawPk;
+
+  // Use only if it's a valid 64-character hex string (32 bytes).
   if (pk && pk.length === 64 && /^[0-9a-fA-F]{64}$/.test(pk)) {
     return pk;
   }
