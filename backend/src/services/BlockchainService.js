@@ -28,6 +28,7 @@ class BlockchainService {
       }
       
       this.contractAddress = process.env.CONTRACT_ADDRESS || '';
+      this.interface = new ethers.Interface(APILoggerABI);
       
       if (this.signer && this.contractAddress !== '0x0000000000000000000000000000000000000000') {
         this.contract = new ethers.Contract(
@@ -45,6 +46,7 @@ class BlockchainService {
       this.provider = null;
       this.signer = null;
       this.contract = null;
+      this.interface = new ethers.Interface(APILoggerABI);
     }
   }
 
@@ -263,6 +265,46 @@ class BlockchainService {
     } catch (error) {
       console.error('[Blockchain] Error retrieving log count:', error.message);
       return '0';
+    }
+  }
+
+  /**
+   * Decode a storeLog transaction by tx hash.
+   * Useful when direct getLog() ABI decoding fails on older deployments.
+   */
+  async getStoredLogFromTransaction(txHash) {
+    try {
+      if (!this.provider || !txHash) {
+        return null;
+      }
+
+      const tx = await this.provider.getTransaction(txHash);
+      if (!tx || !tx.data) {
+        return null;
+      }
+
+      const parsed = this.interface.parseTransaction({ data: tx.data, value: tx.value });
+      if (!parsed || parsed.name !== 'storeLog') {
+        return null;
+      }
+
+      const args = parsed.args || [];
+      const receipt = await this.provider.getTransactionReceipt(txHash);
+
+      return {
+        ipfsHash: String(args[0] || ''),
+        signature: this.normalizeBytesSignature(args[1] || '0x'),
+        userId: String(args[2] || ''),
+        endpoint: String(args[3] || ''),
+        statusCode: Number(args[4] || 0),
+        requestSize: Number(args[5] || 0),
+        responseSize: Number(args[6] || 0),
+        txStatus: receipt ? Number(receipt.status || 0) : 0,
+        blockNumber: receipt ? Number(receipt.blockNumber || 0) : 0,
+      };
+    } catch (error) {
+      console.warn('[Blockchain] Could not decode storeLog transaction:', error.message);
+      return null;
     }
   }
 }

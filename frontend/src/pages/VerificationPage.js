@@ -30,17 +30,25 @@ function VerificationPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `${process.env.REACT_APP_BACKEND_URL}/api/logs/${logHash.trim()}`,
+      const response = await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL}/api/logs/${logHash.trim()}/verify`,
+        {},
         {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
 
+      const result = response.data.data;
       setVerificationResult({
-        isValid: true,
-        log: response.data.data,
+        isValid: Boolean(result?.isValid),
+        checks: result?.checks || null,
+        verificationSource: result?.verificationSource || 'none',
+        log: result?.log || null,
       });
+
+      if (!result?.isValid) {
+        setError('Tampering detected: log integrity checks failed');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Log not found or verification failed');
       setVerificationResult({
@@ -144,7 +152,11 @@ function VerificationPage() {
                 <div className="result-icon">✓</div>
                 <div className="result-text">
                   <h2>Log Verified</h2>
-                  <p>Log found and signature is valid</p>
+                  <p>
+                    {verificationResult?.verificationSource === 'blockchain-fallback'
+                      ? 'Log verified using blockchain fallback checks'
+                      : 'Log verified using IPFS integrity checks'}
+                  </p>
                 </div>
               </div>
 
@@ -322,12 +334,31 @@ function VerificationPage() {
                       <div className="checklist-item done">
                         <span>✓</span> Log found in database
                       </div>
-                      <div className={`checklist-item ${verificationResult.log.verified ? 'done' : 'pending'}`}>
-                        <span>{verificationResult.log.verified ? '✓' : '○'}</span> Signature verified
+                      <div className={`checklist-item ${verificationResult?.checks?.signatureValid ? 'done' : 'pending'}`}>
+                        <span>{verificationResult?.checks?.signatureValid ? '✓' : '○'}</span> Signature verified
                       </div>
                       <div className={`checklist-item ${verificationResult.log.ipfsHash ? 'done' : 'pending'}`}>
                         <span>{verificationResult.log.ipfsHash ? '✓' : '○'}</span> IPFS storage confirmed
                       </div>
+                      {verificationResult?.checks?.ipfsAvailable ? (
+                        <>
+                          <div className={`checklist-item ${verificationResult?.checks?.hashMatches ? 'done' : 'pending'}`}>
+                            <span>{verificationResult?.checks?.hashMatches ? '✓' : '○'}</span> Hash integrity verified
+                          </div>
+                          <div className={`checklist-item ${verificationResult?.checks?.dbMatchesIpfs ? 'done' : 'pending'}`}>
+                            <span>{verificationResult?.checks?.dbMatchesIpfs ? '✓' : '○'}</span> DB data matches IPFS
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className={`checklist-item ${verificationResult?.checks?.onChainAvailable ? 'done' : 'pending'}`}>
+                            <span>{verificationResult?.checks?.onChainAvailable ? '✓' : '○'}</span> On-chain record found
+                          </div>
+                          <div className={`checklist-item ${verificationResult?.checks?.dbMatchesOnChain ? 'done' : 'pending'}`}>
+                            <span>{verificationResult?.checks?.dbMatchesOnChain ? '✓' : '○'}</span> DB data matches blockchain
+                          </div>
+                        </>
+                      )}
                       <div className={`checklist-item ${verificationResult.log.blockchainHash ? 'done' : 'pending'}`}>
                         <span>{verificationResult.log.blockchainHash ? '✓' : '○'}</span> Blockchain recorded
                       </div>

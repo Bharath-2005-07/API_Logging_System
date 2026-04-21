@@ -107,11 +107,25 @@ router.post('/create', async (req, res) => {
         requestCount: 1,
         totalCost: costInCents, // Store in cents
         status: 'pending',
+        paymentStatus: 'pending',
+        amountPaid: 0,
         costPerRequest: 2.00, // Updated base cost
       });
     } else {
       billing.requestCount += 1;
       billing.totalCost += costInCents;
+
+      const paidSoFar = billing.amountPaid || 0;
+      const outstanding = billing.totalCost - paidSoFar;
+
+      // New usage should only stay paid when there is no outstanding balance.
+      if (outstanding > 0) {
+        billing.status = 'pending';
+        billing.paymentStatus = 'pending';
+      } else {
+        billing.status = 'paid';
+        billing.paymentStatus = 'paid';
+      }
     }
 
     await billing.save();
@@ -266,16 +280,101 @@ router.post('/:logHash/verify', async (req, res) => {
       return errorResponse(res, 'Log not found', 404);
     }
 
-    if (!log.verified) {
-      log.verified = true;
-      log.verifiedAt = new Date();
-      await log.save();
-      console.log(`[VERIFY] Log verified successfully: ${req.params.logHash}`);
-    } else {
-      console.log(`[VERIFY] Log already verified: ${req.params.logHash}`);
+    const { publicKey } = await LoggingService.loadKeys();
+    const signatureValid = LoggingService.verifySignature(log.logHash, log.signature, publicKey);
+    let ipfsAvailable = false;
+    let hashMatches = false;
+    let dbMatchesIpfs = false;
+    let recomputedHash = null;
+
+    let onChainAvailable = false;
+    let transactionMined = false;
+    let onChainIpfsMatches = false;
+    let dbMatchesOnChain = false;
+    let signatureOnChainMatches = false;
+    let verificationSource = 'none';
+
+    try {
+      const ipfsData = await IPFSService.retrieveFile(log.ipfsHash);
+      const canonicalIpfsData = typeof ipfsData === 'string' ? JSON.parse(ipfsData) : ipfsData;
+      recomputedHash = LoggingService.generateLogHash(canonicalIpfsData);
+      ipfsAvailable = true;
+
+      hashMatches = recomputedHash === log.logHash && log.logHash === req.params.logHash;
+
+      // Detect cache tampering by comparing DB fields with canonical IPFS payload.
+      dbMatchesIpfs = (
+        String(log.endpoint) === String(canonicalIpfsData.endpoint) &&
+        String(log.method) === String(canonicalIpfsData.method) &&
+        Number(log.statusCode) === Number(canonicalIpfsData.statusCode) &&
+        Number(log.requestSize) === Number(canonicalIpfsData.requestSize) &&
+        Number(log.responseSize) === Number(canonicalIpfsData.responseSize) &&
+        Number(log.responseTime || 0) === Number(canonicalIpfsData.responseTime || 0) &&
+        String(log.userId) === String(canonicalIpfsData.userId) &&
+        String(log.previousHash || '') === String(canonicalIpfsData.previousHash || '') &&
+        Number(log.chainIndex || 0) === Number(canonicalIpfsData.chainIndex || 0)
+      );
+
+      verificationSource = 'ipfs';
+    } catch (ipfsError) {
+      console.warn(`[VERIFY] IPFS retrieval failed for ${log.ipfsHash}, using on-chain fallback: ${ipfsError.message}`);
+
+      const onChainLog = log.blockchainHash
+        ? await BlockchainService.getStoredLogFromTransaction(log.blockchainHash)
+        : null;
+
+      const expectedOnChainKey = BlockchainService.toOnChainIpfsKey(log.ipfsHash);
+      const onChainKey = onChainLog && onChainLog.ipfsHash ? String(onChainLog.ipfsHash) : '';
+
+      onChainAvailable = Boolean(onChainLog);
+      transactionMined = onChainAvailable && Number(onChainLog.txStatus || 0) === 1;
+
+      onChainIpfsMatches = onChainAvailable && onChainKey.toLowerCase() === String(expectedOnChainKey).toLowerCase();
+
+      dbMatchesOnChain = onChainAvailable && (
+        String(log.userId) === String(onChainLog.userId || '') &&
+        String(log.endpoint) === String(onChainLog.endpoint || '') &&
+        Number(log.statusCode) === Number(onChainLog.statusCode || 0) &&
+        Number(log.requestSize) === Number(onChainLog.requestSize || 0) &&
+        Number(log.responseSize) === Number(onChainLog.responseSize || 0)
+      );
+
+      const normalizedDbSignature = BlockchainService.normalizeBytesSignature(log.signature);
+      const normalizedOnChainSignature = onChainAvailable
+        ? BlockchainService.normalizeBytesSignature(onChainLog.signature)
+        : null;
+
+      signatureOnChainMatches = Boolean(normalizedOnChainSignature) && normalizedDbSignature === normalizedOnChainSignature;
+      verificationSource = 'blockchain-tx-fallback';
     }
 
-    successResponse(res, { verified: true, log }, 'Log verified');
+    const isValid = signatureValid && (
+      (ipfsAvailable && hashMatches && dbMatchesIpfs) ||
+      (!ipfsAvailable && onChainAvailable && transactionMined && onChainIpfsMatches && dbMatchesOnChain && signatureOnChainMatches)
+    );
+
+    log.verified = isValid;
+    log.verifiedAt = isValid ? new Date() : null;
+    await log.save();
+
+    successResponse(res, {
+      isValid,
+      verified: isValid,
+      verificationSource,
+      checks: {
+        hashMatches,
+        signatureValid,
+        dbMatchesIpfs,
+        ipfsAvailable,
+        onChainAvailable,
+        transactionMined,
+        onChainIpfsMatches,
+        dbMatchesOnChain,
+        signatureOnChainMatches,
+      },
+      recomputedHash,
+      log,
+    }, isValid ? 'Log verified successfully' : 'Log tampering detected');
   } catch (error) {
     console.error(`[VERIFY] Error verifying log: ${error.message}`);
     errorResponse(res, error.message, 500, error);

@@ -30,7 +30,9 @@ router.get('/current-month', async (req, res) => {
         requestCount: 0,
         totalCost: 0,
         status: 'pending',
-        costPerRequest: 0.001,
+        paymentStatus: 'pending',
+        amountPaid: 0,
+        costPerRequest: 2.00,
       });
       await billing.save();
       console.log(`[BILLING] Created new billing record for user ${req.user.userId}`);
@@ -66,7 +68,9 @@ router.get('/current', async (req, res) => {
         requestCount: 0,
         totalCost: 0,
         status: 'pending',
-        costPerRequest: 0.001,
+        paymentStatus: 'pending',
+        amountPaid: 0,
+        costPerRequest: 2.00,
       });
       await billing.save();
       console.log(`[BILLING] Created new billing record for user ${req.user.userId}`);
@@ -98,7 +102,7 @@ router.get('/history', async (req, res) => {
 
     console.log(`[BILLING] Retrieved history for user ${req.user.userId}: ${billingRecords.length} records (page ${page}, total: ${totalCount})`);
 
-    paginatedResponse(res, billingRecords, page, limit, totalCount, 'Billing history retrieved');
+    paginatedResponse(res, billingRecords, totalCount, page, limit, 'Billing history retrieved');
   } catch (error) {
     console.error(`[BILLING] History error: ${error.message}`);
     errorResponse(res, error.message, 500, error);
@@ -124,21 +128,23 @@ router.post('/payment', async (req, res) => {
 
     const totalCost = billing.totalCost; // in cents
     const amountPaidCents = Math.round(amountPaid * 100); // convert to cents
+    const alreadyPaidCents = billing.amountPaid || 0;
+    const totalPaidCents = alreadyPaidCents + amountPaidCents;
     
     let remaining = 0;
     let refund = 0;
 
-    if (amountPaidCents >= totalCost) {
+    if (totalPaidCents >= totalCost) {
       // Paid full amount or more
-      refund = amountPaidCents - totalCost;
+      refund = totalPaidCents - totalCost;
       remaining = 0;
       billing.status = 'paid';
       billing.paymentStatus = 'paid';
       billing.amountPaid = totalCost; // Only record the actual cost paid
     } else {
       // Partial payment
-      remaining = totalCost - amountPaidCents;
-      billing.amountPaid = amountPaidCents;
+      remaining = totalCost - totalPaidCents;
+      billing.amountPaid = totalPaidCents;
       billing.status = 'pending';
       billing.paymentStatus = 'pending';
     }
@@ -150,6 +156,7 @@ router.post('/payment', async (req, res) => {
 
     successResponse(res, {
       amountPaid: amountPaidCents / 100,
+      totalPaid: billing.amountPaid / 100,
       totalCost: totalCost / 100,
       refundAmount: refund / 100,
       remaining: remaining / 100,
