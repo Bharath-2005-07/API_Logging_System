@@ -307,43 +307,6 @@ function VerificationPage() {
                     </div>
                   </div>
 
-                  {verificationResult.log.blockchainHash && (
-                    <div className="details-section">
-                      <h3>⛓️ Blockchain Verification</h3>
-                      {blockchainData ? (
-                        <div className="blockchain-info success">
-                          <p className="status">✓ Log is recorded on blockchain</p>
-                          <div className="blockchain-details">
-                            <div className="blockchain-item">
-                              <span>Transaction Hash:</span>
-                              <code>{blockchainData.transactionHash}</code>
-                            </div>
-                            <div className="blockchain-item">
-                              <span>Block Number:</span>
-                              <strong>{blockchainData.blockNumber}</strong>
-                            </div>
-                            <div className="blockchain-item">
-                              <span>Timestamp:</span>
-                              <strong>{new Date(blockchainData.timestamp * 1000).toLocaleString()}</strong>
-                            </div>
-                            <div className="blockchain-item">
-                              <span>Network:</span>
-                              <strong>Sepolia Testnet</strong>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <button 
-                          className="btn btn-secondary"
-                          onClick={handleVerifyBlockchain}
-                          disabled={verifyingBlockchain}
-                        >
-                          {verifyingBlockchain ? '⏳ Verifying...' : '🔍 Check Blockchain'}
-                        </button>
-                      )}
-                    </div>
-                  )}
-
                   {verificationResult.log.metadata && Object.keys(verificationResult.log.metadata).length > 0 && (
                     <div className="details-section">
                       <h3>📊 Metadata</h3>

@@ -27,6 +27,11 @@ MongoDB configuration:
 - Replica set settings
 - SSL/TLS options
 
+## Current Runtime Source of Truth
+
+Backend loads environment from root `.env`.
+Frontend uses `REACT_APP_*` values from root `.env` during build/start.
+
 ## Usage
 
 ### In Backend
@@ -46,6 +51,11 @@ All configurations read from `.env`:
 ETHEREUM_RPC_URL=...
 PRIVATE_KEY=...
 CONTRACT_ADDRESS=...
+
+# Frontend Blockchain
+REACT_APP_CONTRACT_ADDRESS=...
+REACT_APP_NETWORK=sepolia
+REACT_APP_CHAIN_ID=11155111
 
 # IPFS
 IPFS_HOST=...
@@ -73,3 +83,10 @@ MONGODB_URI=...
 - Always use `example` files for templates
 - Update configs before deployment
 - Test configurations before production
+
+## Current Verification Tip
+
+If tx hash is missing in UI:
+1. Check wallet has Sepolia ETH
+2. Check contract address/network in .env
+3. Ensure backend signer is registered on-chain

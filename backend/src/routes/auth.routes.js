@@ -41,7 +41,8 @@ router.post('/register', async (req, res) => {
 
     await newUser.save();
 
-    const token = generateToken(userId, email);
+    // Use normalized values from saved document to avoid token/userId case mismatch.
+    const token = generateToken(newUser.userId, newUser.email);
 
     successResponse(res, { token, user: newUser.toJSON() }, 'User registered successfully', 201);
   } catch (error) {

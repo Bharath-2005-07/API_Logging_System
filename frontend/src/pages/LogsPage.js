@@ -97,7 +97,12 @@ function LogsPage() {
       );
 
       const logHash = response.data.data.logHash;
-      setSuccess('Log created successfully! Verifying...');
+      const txHash = response.data.data.blockchainHash;
+      setSuccess(
+        txHash
+          ? 'Log created successfully. On-chain anchoring confirmed.'
+          : 'Log created, but on-chain anchoring pending or failed.'
+      );
       
       // Reset form
       setFormData({
@@ -425,7 +430,10 @@ function LogsPage() {
                 <th>Status</th>
                 <th>Time</th>
                 <th>Response</th>
-                <th>Hash (Blockchain)</th>
+                <th>Log Hash</th>
+                <th>Previous Hash</th>
+                <th>On-chain Tx</th>
+                <th>Explorer</th>
                 <th>Verified</th>
                 <th>Created</th>
               </tr>
@@ -459,23 +467,76 @@ function LogsPage() {
                     {(log.responseSize / 1024).toFixed(2)} KB
                   </td>
                   <td className="hash-cell">
-                    <code title={log.blockchainHash || log.logHash}>
-                      {log.blockchainHash 
-                        ? log.blockchainHash.substring(0, 8) + '...' + log.blockchainHash.substring(log.blockchainHash.length - 6)
-                        : log.logHash.substring(0, 8) + '...' + log.logHash.substring(log.logHash.length - 6)
-                      }
+                    <code title={log.logHash}>
+                      {log.logHash.substring(0, 10) + '...' + log.logHash.substring(log.logHash.length - 8)}
                     </code>
-                    <button 
+                    <button
                       className="copy-btn"
                       onClick={() => {
-                        const hash = log.blockchainHash || log.logHash;
-                        navigator.clipboard.writeText(hash);
-                        alert('Hash copied to clipboard!');
+                        navigator.clipboard.writeText(log.logHash);
+                        alert('Log hash copied to clipboard!');
                       }}
-                      title="Copy to clipboard"
+                      title="Copy log hash"
                     >
                       📋
                     </button>
+                  </td>
+                  <td className="hash-cell">
+                    {log.previousHash ? (
+                      <>
+                        <code title={log.previousHash}>
+                          {log.previousHash.substring(0, 10) + '...' + log.previousHash.substring(log.previousHash.length - 8)}
+                        </code>
+                        <button
+                          className="copy-btn"
+                          onClick={() => {
+                            navigator.clipboard.writeText(log.previousHash);
+                            alert('Previous hash copied to clipboard!');
+                          }}
+                          title="Copy previous hash"
+                        >
+                          📋
+                        </button>
+                      </>
+                    ) : (
+                      <span className="pending">Genesis</span>
+                    )}
+                  </td>
+                  <td className="hash-cell">
+                    {log.blockchainHash ? (
+                      <>
+                        <code title={log.blockchainHash}>
+                          {log.blockchainHash.substring(0, 10) + '...' + log.blockchainHash.substring(log.blockchainHash.length - 8)}
+                        </code>
+                        <button
+                          className="copy-btn"
+                          onClick={() => {
+                            navigator.clipboard.writeText(log.blockchainHash);
+                            alert('Transaction hash copied to clipboard!');
+                          }}
+                          title="Copy transaction hash"
+                        >
+                          📋
+                        </button>
+                      </>
+                    ) : (
+                      <span className="pending">On-chain anchoring pending or failed.</span>
+                    )}
+                  </td>
+                  <td className="action-cell">
+                    {log.blockchainHash ? (
+                      <a
+                        href={`https://sepolia.etherscan.io/tx/${log.blockchainHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="action-link"
+                        title="Open transaction on Sepolia Etherscan"
+                      >
+                        View on Sepolia
+                      </a>
+                    ) : (
+                      <span className="pending">No tx hash</span>
+                    )}
                   </td>
                   <td className="verified-cell">
                     <span className={log.verified ? 'verified' : 'pending'}>

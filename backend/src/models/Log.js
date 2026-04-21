@@ -20,6 +20,16 @@ const logSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  previousHash: {
+    type: String,
+    default: null,
+    index: true,
+  },
+  chainIndex: {
+    type: Number,
+    default: 0,
+    index: true,
+  },
   signature: {
     type: String,
     required: true,

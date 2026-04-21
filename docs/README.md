@@ -30,6 +30,15 @@ Complete documentation for the Secure and Immutable API Usage Logging System.
 - Installation instructions
 - Testing procedures
 
+### IPFS.md
+- IPFS integration notes
+- CID behavior and retrieval
+
+### MONGODB_SETUP_AND_VERIFICATION.md
+- Local DB setup
+- Validation checklist
+- Startup troubleshooting
+
 ### MONGODB_SETUP_AND_VERIFICATION.md
 - Complete MongoDB local setup (Windows, Mac, Linux)
 - .env configuration with all required values
@@ -48,30 +57,10 @@ Complete documentation for the Secure and Immutable API Usage Logging System.
 
 ## Getting Started
 
-### 🔑 MetaMask & Keys Setup (READ FIRST!)
-**If you're using MetaMask**: [../KEYS_SETUP_GUIDE.md](../KEYS_SETUP_GUIDE.md)
-- Setup your MetaMask private key (for blockchain)
-- Generate RSA keys (for API signatures)
-- Understand the difference between keys
-- Complete project criteria checklist
-
-### Quick Start (Recommended - All Commands & Demo)
-**Start here for copy-paste commands**: [../STARTUP_AND_DEMO_GUIDE.md](../STARTUP_AND_DEMO_GUIDE.md)
-- Step-by-step startup commands
-- MongoDB Compass setup (password reset)
-- Demo commands to test everything
-- Full test script ready to run
-
-### For Local MongoDB Setup (Detailed Configuration)
-[MONGODB_SETUP_AND_VERIFICATION.md](./MONGODB_SETUP_AND_VERIFICATION.md)
-- Complete MongoDB installation for your OS
-- Configure all .env variables
-- Run verification checklist
-- Troubleshooting guide
-
-### For Additional Information
-1. Read [SETUP_GUIDE.md](./SETUP_GUIDE.md) for high-level overview
-2. Review [ARCHITECTURE.md](./ARCHITECTURE.md) for system understanding
+1. Read [SETUP_GUIDE.md](./SETUP_GUIDE.md)
+2. Review [ARCHITECTURE.md](./ARCHITECTURE.md)
+3. Validate APIs in [API_ENDPOINTS.md](./API_ENDPOINTS.md)
+4. Use [MONGODB_SETUP_AND_VERIFICATION.md](./MONGODB_SETUP_AND_VERIFICATION.md) for local verification
 
 ## Support
 

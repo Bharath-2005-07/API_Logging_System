@@ -2,262 +2,99 @@
 
 ## Overview
 
-Node.js Express backend for the API logging system. Handles user authentication, log generation, IPFS integration, and blockchain interaction.
+Express backend for auth, log generation, IPFS upload, on-chain anchoring, billing, and verification.
 
-## Features
+## Current Highlights
 
-- ✅ User authentication (JWT)
-- ✅ Log generation and storage
-- ✅ IPFS integration
-- ✅ Smart contract interaction
-- ✅ Digital signatures
-- ✅ Rate limiting
-- ✅ MongoDB caching
-- ✅ Billing system
+- JWT auth routes
+- User profile/stats routes
+- Log creation flow with:
+  - SHA-256 log hash
+  - RSA signature
+  - IPFS CID upload
+  - Sepolia smart contract write
+- Per-user chain fields in log records:
+  - previousHash
+  - chainIndex
+- Chain verification endpoint
+- Billing with current pricing
 
-## Structure
-
-```
-backend/
-├── src/
-│   ├── models/          # MongoDB schemas
-│   │   ├── User.js
-│   │   ├── Log.js
-│   │   └── Billing.js
-│   ├── routes/          # API endpoints
-│   │   ├── auth.routes.js
-│   │   ├── user.routes.js
-│   │   ├── log.routes.js
-│   │   ├── billing.routes.js
-│   │   ├── blockchain.routes.js
-│   │   └── ipfs.routes.js
-│   ├── services/        # Business logic
-│   │   ├── LoggingService.js
-│   │   ├── IPFSService.js
-│   │   └── BlockchainService.js
-│   ├── middleware/      # Express middleware
-│   │   ├── auth.js
-│   │   └── errorHandler.js
-│   ├── utils/           # Utilities
-│   │   ├── database.js
-│   │   ├── validation.js
-│   │   ├── response.js
-│   │   └── APILoggerABI.json
-│   └── server.js        # Main entry point
-├── package.json
-└── README.md
-```
-
-## Installation
-
-### 1. Install Dependencies
+## Start
 
 ```bash
 npm install
+npm start
 ```
 
-### 2. Configure Environment
+Server default: http://localhost:5000
 
-Copy and edit `.env`:
-```bash
-cp ../.env.example ../.env
-```
+## Required Environment (root .env)
 
-Key variables needed:
 ```env
 BACKEND_PORT=5000
 MONGODB_URI=mongodb://localhost:27017/api-logging-db
-ETHEREUM_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
+JWT_SECRET=...
+ETHEREUM_RPC_URL=...
+PRIVATE_KEY=0x...
 CONTRACT_ADDRESS=0x...
-IPFS_HOST=ipfs.infura.io
-JWT_SECRET=your_secret_key
 ```
 
-### 3. Start Backend
+## Main APIs
 
-```bash
-npm start          # Production mode
-npm run dev        # Development with auto-reload
-```
-
-Server starts on `http://localhost:5000`
-
-## API Endpoints
-
-### Authentication
-```
-POST   /api/auth/register      # Register new user
-POST   /api/auth/login         # Login user
-```
+### Auth
+- POST /api/auth/register
+- POST /api/auth/login
 
 ### Users
-```
-GET    /api/users/profile      # Get user profile
-PUT    /api/users/profile      # Update profile
-GET    /api/users/stats        # Get statistics
-```
+- GET /api/users/profile
+- PUT /api/users/profile
+- GET /api/users/stats
 
 ### Logs
-```
-POST   /api/logs/create        # Create new log
-GET    /api/logs               # Get user logs (paginated)
-GET    /api/logs/:logHash      # Get specific log
-```
+- POST /api/logs/create
+- GET /api/logs
+- GET /api/logs/:logHash
+- POST /api/logs/:logHash/verify
+- GET /api/logs/chain/verify
 
 ### Billing
-```
-GET    /api/billing/history    # Get billing history
-GET    /api/billing/current    # Get current period
-```
+- GET /api/billing/current-month
+- GET /api/billing/current
+- GET /api/billing/history
+- POST /api/billing/payment
 
 ### Blockchain
-```
-GET    /api/blockchain/stats   # Get stats
-GET    /api/blockchain/logs    # Get blockchain logs
-```
+- GET /api/blockchain/stats
+- GET /api/blockchain/logs
+- GET /api/blockchain/verify/:ipfsHash
 
-### IPFS
-```
-POST   /api/ipfs/upload        # Upload to IPFS
-GET    /api/ipfs/retrieve/:hash # Retrieve from IPFS
-```
+## Log Create Response (current)
 
-## API Request Examples
-
-### Register User
-```bash
-curl -X POST http://localhost:5000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "userId": "john_doe",
-    "email": "john@example.com",
-    "name": "John Doe",
-    "password": "secure_password"
-  }'
+```json
+{
+  "logHash": "...",
+  "previousHash": "... or null",
+  "chainIndex": 0,
+  "ipfsHash": "...",
+  "blockchainHash": "... or null",
+  "signature": "..."
+}
 ```
 
-### Login
-```bash
-curl -X POST http://localhost:5000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "john@example.com",
-    "password": "secure_password"
-  }'
-```
+## Chain Verification Response (current)
 
-### Create Log
-```bash
-curl -X POST http://localhost:5000/api/logs/create \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "endpoint": "/api/users",
-    "method": "GET",
-    "statusCode": 200,
-    "requestSize": 256,
-    "responseSize": 1024,
-    "responseTime": 45
-  }'
-```
+GET /api/logs/chain/verify returns:
 
-### Get User Logs
-```bash
-curl -X GET "http://localhost:5000/api/logs?page=1&limit=10" \
-  -H "Authorization: Bearer YOUR_TOKEN"
-```
+- chainValid
+- totalLogs
+- brokenCount
+- head
+- brokenLinks[]
 
-## Services
+## Notes
 
-### LoggingService
-Handles log generation, hashing, and digital signatures.
-
-```javascript
-// Generate hash
-const hash = LoggingService.generateLogHash(logData);
-
-// Create signature
-const signature = LoggingService.createSignature(hash, privateKey);
-
-// Verify signature
-const isValid = LoggingService.verifySignature(hash, signature, publicKey);
-```
-
-### IPFSService
-Manages IPFS interactions.
-
-```javascript
-// Upload file
-const ipfsHash = await IPFSService.uploadFile(content, filename);
-
-// Retrieve file
-const content = await IPFSService.retrieveFile(ipfsHash);
-
-// Pin file
-await IPFSService.pinFile(ipfsHash);
-```
-
-### BlockchainService
-Blockchain smart contract interactions.
-
-```javascript
-// Store log
-const txHash = await BlockchainService.storeLog(...);
-
-// Get log
-const log = await BlockchainService.getLog(ipfsHash);
-
-// Register user
-await BlockchainService.registerUser(userId);
-```
-
-## Middleware
-
-### Authentication
-- Verifies JWT tokens
-- Attaches user info to request
-
-### Error Handler
-- Centralized error handling
-- Consistent error responses
-- Detailed logging
-
-## Database Models
-
-### User
-- userId (unique)
-- email (unique)
-- passwordHash
-- walletAddress
-- totalRequests
-- totalCost
-- apiKey
-
-### Log
-- logHash (unique)
-- ipfsHash
-- blockchainHash
-- signature
-- userId
-- endpoint
-- statusCode
-- responseTime
-- verified
-
-### Billing
-- userId
-- period (startDate, endDate)
-- requestCount
-- totalCost
-- status (pending, paid, overdue)
-
-## Testing
-
-```bash
-npm test                 # Run tests
-npm run test:watch     # Watch mode
-npm run test:coverage  # Coverage report
-```
+- If blockchainHash is null, on-chain anchoring failed or is pending.
+- Use log hash for Verify page; use transaction hash for Etherscan.
 
 ## Linting
 

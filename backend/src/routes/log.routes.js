@@ -19,6 +19,14 @@ router.post('/create', async (req, res) => {
   try {
     const { endpoint, method, statusCode, requestSize, responseSize, responseTime, metadata } = req.body;
 
+    // Build per-user chain context.
+    const previousLog = await Log.findOne({ userId: req.user.userId })
+      .sort({ createdAt: -1 })
+      .select('logHash chainIndex');
+
+    const previousHash = previousLog ? previousLog.logHash : null;
+    const chainIndex = previousLog ? (previousLog.chainIndex || 0) + 1 : 0;
+
     // Create log object
     const logData = {
       endpoint,
@@ -28,6 +36,8 @@ router.post('/create', async (req, res) => {
       responseSize,
       responseTime,
       userId: req.user.userId,
+      previousHash,
+      chainIndex,
       timestamp: new Date().toISOString(),
       ...metadata,
     };
@@ -58,6 +68,8 @@ router.post('/create', async (req, res) => {
       logHash,
       ipfsHash,
       blockchainHash,
+      previousHash,
+      chainIndex,
       signature,
       userId: req.user.userId,
       endpoint,
@@ -107,6 +119,8 @@ router.post('/create', async (req, res) => {
 
     successResponse(res, {
       logHash,
+      previousHash,
+      chainIndex,
       ipfsHash,
       blockchainHash,
       signature,
@@ -157,6 +171,54 @@ router.get('/', async (req, res) => {
     const total = await Log.countDocuments(filter);
 
     paginatedResponse(res, logs, total, page, limit, 'Logs retrieved');
+  } catch (error) {
+    errorResponse(res, error.message, 500, error);
+  }
+});
+
+/**
+ * GET /api/logs/chain/verify
+ * Verify per-user previousHash chain integrity
+ */
+router.get('/chain/verify', async (req, res) => {
+  try {
+    const logs = await Log.find({ userId: req.user.userId })
+      .sort({ createdAt: 1 })
+      .select('logHash previousHash chainIndex createdAt endpoint method');
+
+    const brokenLinks = [];
+
+    for (let i = 0; i < logs.length; i += 1) {
+      const current = logs[i];
+      const prev = i > 0 ? logs[i - 1] : null;
+
+      const expectedPreviousHash = prev ? prev.logHash : null;
+      const expectedIndex = i;
+
+      const linkMatches = (current.previousHash || null) === expectedPreviousHash;
+      const indexMatches = (current.chainIndex || 0) === expectedIndex;
+
+      if (!linkMatches || !indexMatches) {
+        brokenLinks.push({
+          logHash: current.logHash,
+          previousHash: current.previousHash,
+          expectedPreviousHash,
+          chainIndex: current.chainIndex,
+          expectedChainIndex: expectedIndex,
+          createdAt: current.createdAt,
+          endpoint: current.endpoint,
+          method: current.method,
+        });
+      }
+    }
+
+    successResponse(res, {
+      chainValid: brokenLinks.length === 0,
+      totalLogs: logs.length,
+      brokenCount: brokenLinks.length,
+      head: logs.length ? logs[logs.length - 1].logHash : null,
+      brokenLinks,
+    }, 'Chain verification completed');
   } catch (error) {
     errorResponse(res, error.message, 500, error);
   }

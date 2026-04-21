@@ -5,6 +5,8 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const Log = require('../models/Log');
+const Billing = require('../models/Billing');
 const { successResponse, errorResponse } = require('../utils/response');
 
 /**
@@ -13,7 +15,12 @@ const { successResponse, errorResponse } = require('../utils/response');
  */
 router.get('/profile', async (req, res) => {
   try {
-    const user = await User.findOne({ userId: req.user.userId });
+    const user = await User.findOne({
+      $or: [
+        { userId: req.user.userId },
+        { email: req.user.email },
+      ],
+    });
     if (!user) return errorResponse(res, 'User not found', 404);
 
     successResponse(res, user.toJSON(), 'Profile retrieved');
@@ -31,7 +38,12 @@ router.put('/profile', async (req, res) => {
     const { name, walletAddress, profile } = req.body;
 
     const updatedUser = await User.findOneAndUpdate(
-      { userId: req.user.userId },
+      {
+        $or: [
+          { userId: req.user.userId },
+          { email: req.user.email },
+        ],
+      },
       {
         ...(name && { name }),
         ...(walletAddress && { walletAddress }),
@@ -52,13 +64,33 @@ router.put('/profile', async (req, res) => {
  */
 router.get('/stats', async (req, res) => {
   try {
-    const user = await User.findOne({ userId: req.user.userId });
+    const user = await User.findOne({
+      $or: [
+        { userId: req.user.userId },
+        { email: req.user.email },
+      ],
+    });
     if (!user) return errorResponse(res, 'User not found', 404);
+
+    const [totalRequests, billingAgg] = await Promise.all([
+      Log.countDocuments({ userId: user.userId }),
+      Billing.aggregate([
+        { $match: { userId: user.userId } },
+        {
+          $group: {
+            _id: null,
+            totalCost: { $sum: '$totalCost' },
+          },
+        },
+      ]),
+    ]);
+
+    const totalCost = billingAgg.length ? billingAgg[0].totalCost : 0;
 
     successResponse(res, {
       userId: user.userId,
-      totalRequests: user.totalRequests,
-      totalCost: user.totalCost,
+      totalRequests,
+      totalCost,
       registeredAt: user.registeredAt,
       lastLogin: user.lastLogin,
     });

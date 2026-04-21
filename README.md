@@ -1,263 +1,114 @@
 # Secure and Immutable API Usage Logging System
 
-## 📋 Overview
+## Overview
 
-A decentralized API logging system leveraging **Blockchain** and **IPFS** to ensure immutability, transparency, and trustless verification of API usage logs. This system eliminates centralized trust issues by recording API usage on an immutable blockchain and storing logs on IPFS.
+This project captures API activity and secures each record through:
+1. SHA-256 log hashing
+2. RSA signature generation
+3. IPFS storage of payload data
+4. On-chain anchoring on Ethereum Sepolia
 
-```
-Client → Backend → Log Creation → Digital Signature → IPFS Storage → Blockchain Hash Storage → Dashboard Verification
-```
+Current flow:
 
-## 🎯 Key Features
+Client → Backend → Hash + Signature → IPFS CID → Smart Contract → MongoDB cache → Frontend verification
 
-✅ **Immutable Logs** - Tamper-proof API usage records  
-✅ **Digital Signatures** - Ensure authenticity of logs  
-✅ **Decentralized Storage** - IPFS for distributed log storage  
-✅ **Blockchain Integration** - Smart contracts for log hashes  
-✅ **Billing System** - Track API usage and costs  
-✅ **Rate Limiting** - Prevent abuse  
-✅ **Dashboard Analytics** - Real-time visualization and verification  
-✅ **Trustless Verification** - Independent third-party verification  
+## Implemented Features (Current)
 
-## 🏗️ Architecture
+- JWT auth (register/login)
+- Logs create/list/filter/verify
+- Log hash display in UI
+- Previous hash display in UI
+- Sepolia tx hash display + direct "View on Sepolia" explorer link
+- Blockchain service with CID → bytes32 deterministic conversion
+- Billing with method pricing:
+  - $2 per request base
+  - +$5 for POST requests
+- Billing history and payment processing
+- Verify page for log hash based verification
 
-```
-┌─────────────┐
-│   Client    │
-└──────┬──────┘
-       │
-┌──────▼──────────────────────────────┐
-│         Backend (Node.js)            │
-│  - API Endpoint Handler              │
-│  - Log Generation                    │
-│  - Digital Signature Creation        │
-│  - Rate Limiting & Auth              │
-└──────┬──────────────────────────────┘
-       │
-┌──────▼──────────────────────────────┐
-│      Log Processing Service          │
-│  - Hash Log Content                  │
-│  - Create Digital Signature          │
-│  - Prepare for Storage               │
-└──────┬──────────────────────────────┘
-       │
-┌──────▼──────────────────────────────┐
-│   IPFS (Decentralized Storage)       │
-│  - Store Log Files                   │
-│  - Return IPFS Hash                  │
-└──────┬──────────────────────────────┘
-       │
-┌──────▼──────────────────────────────┐
-│    Blockchain (Smart Contract)       │
-│  - Store IPFS Hash                   │
-│  - Store Timestamp                   │
-│  - Store Digital Signature           │
-└──────┬──────────────────────────────┘
-       │
-┌──────▼──────────────────────────────┐
-│   Dashboard (React Frontend)         │
-│  - View Logs                         │
-│  - Verify Authenticity               │
-│  - Analytics & Billing               │
-│  - Rate Limiting Overview            │
-└──────────────────────────────────────┘
-```
+## Current Project Structure
 
-## 📁 Project Structure
-
-```
+```text
 blockchain-api-logging/
-├── contracts/                 # Solidity Smart Contracts
-│   ├── src/
-│   │   └── APILogger.sol
-│   ├── hardhat.config.js
-│   └── README.md
-├── backend/                   # Node.js Backend
-│   ├── src/
-│   │   ├── models/
-│   │   ├── routes/
-│   │   ├── services/
-│   │   ├── middleware/
-│   │   ├── utils/
-│   │   └── server.js
-│   ├── package.json
-│   └── README.md
-├── frontend/                  # React Frontend
-│   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── utils/
-│   │   └── App.js
-│   ├── package.json
-│   └── README.md
-├── config/                    # Configuration Files
-│   ├── blockchain.config.js
-│   ├── ipfs.config.js
-│   ├── database.config.js
-│   └── README.md
-├── docs/                      # Documentation
-│   ├── ARCHITECTURE.md
-│   ├── API_ENDPOINTS.md
-│   ├── SMART_CONTRACT.md
-│   └── SETUP_GUIDE.md
-├── .env.example               # Environment Variables Template
-└── README.md                  # This File
+├── backend/
+├── frontend/
+├── contracts/
+├── config/
+├── docs/
+└── README.md
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
-- Node.js v16+ and npm
-- Hardhat (for smart contracts)
-- IPFS node (local or Infura)
-- Ethereum testnet (Sepolia/Goerli)
-- MongoDB (optional, for caching)
-- Git
+- Node.js 16+
+- npm 8+
+- MongoDB running locally
+- Sepolia RPC key + funded wallet
 
-### 1. Clone & Setup
+### 1) Environment setup
 
-```bash
-cd blockchain-api-logging
-
-# Copy environment variables
-cp .env.example .env
-# Edit .env with your credentials
-```
-
-### 2. Deploy Smart Contracts
-
-```bash
-cd contracts
-npm install
-npx hardhat compile
-npx hardhat run scripts/deploy.js --network sepolia
-# Copy contract address to .env
-```
-
-### 3. Start Backend
-
-```bash
-cd backend
-npm install
-npm start
-# Server runs on http://localhost:5000
-```
-
-### 4. Start Frontend
-
-```bash
-cd frontend
-npm install
-npm start
-# App opens on http://localhost:3000
-```
-
-## 🔧 Configuration
-
-Edit `.env` file with:
+Create/update root .env with at least:
 
 ```env
-# Blockchain
-ETHEREUM_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
-PRIVATE_KEY=your_private_key
+ETHEREUM_RPC_URL=https://...
+PRIVATE_KEY=0x...
 CONTRACT_ADDRESS=0x...
-NETWORK=sepolia
-
-# IPFS
-IPFS_HOST=your-infura-ipfs.infura.ipfs.io
-IPFS_PORT=5001
-IPFS_PROTOCOL=https
-
-# Backend
-BACKEND_PORT=5000
-NODE_ENV=development
-JWT_SECRET=your_secret_key
-
-# MongoDB (Optional)
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/db
-
-# Frontend
-REACT_APP_BACKEND_URL=http://localhost:5000
 REACT_APP_CONTRACT_ADDRESS=0x...
+REACT_APP_BACKEND_URL=http://localhost:5000
+MONGODB_URI=mongodb://localhost:27017/api-logging-db
+JWT_SECRET=change_this
 ```
 
-## 📡 Workflow
+### 2) Install dependencies
 
-### 1. API Call Logging
-```
-Client makes API request → Backend receives request
-```
-
-### 2. Log Generation
-```
-Backend generates log with:
-- User ID
-- Endpoint
-- Timestamp
-- Response Status
-- Request/Response Size
-```
-
-### 3. Digital Signature
-```
-Private key signs the log → Ensures authenticity
-Timestamp added → Prevents timestamp manipulation
-```
-
-### 4. IPFS Storage
-```
-Log uploaded to IPFS → Returns IPFS hash
-IPFS hash is immutable → Points to exact log version
-```
-
-### 5. Blockchain Recording
-```
-IPFS hash + signature stored in smart contract
-Transaction hash recorded → Proof of blockchain inclusion
-```
-
-### 6. Verification
-```
-Dashboard retrieves IPFS hash from blockchain
-Downloads log from IPFS
-Verifies digital signature
-Confirms authenticity
-```
-
-## 💻 Key Commands
-
-### Smart Contracts
 ```bash
-cd contracts
-npx hardhat compile          # Compile contracts
-npx hardhat test            # Run tests
-npx hardhat verify          # Verify on Etherscan
+cd backend && npm install
+cd ../frontend && npm install
+cd ../contracts && npm install
 ```
 
-### Backend
+### 3) Start services
+
 ```bash
+# terminal 1
 cd backend
-npm install                 # Install dependencies
-npm start                   # Start development server
-npm run dev                # Start with nodemon
-npm test                    # Run tests
-npm run lint               # Run ESLint
-```
+npm start
 
-### Frontend
-```bash
+# terminal 2
 cd frontend
-npm install                # Install dependencies
-npm start                  # Start development server
-npm run build              # Build for production
-npm test                   # Run tests
+npm start
 ```
 
-### Full Stack
-```bash
-# Start all services (requires separate terminals or pm2)
-npm run start:all         # Not available yet - use individual commands
+## Verification Steps (Current)
+
+1. Login and create a new log from Logs page.
+2. Confirm row shows:
+   - Log Hash
+   - Previous Hash (Genesis for first log)
+   - On-chain Tx
+3. Click "View on Sepolia" and verify tx status is Success.
+4. Copy Log Hash and verify from Verify page.
+
+## Troubleshooting
+
+- `No tx hash` in UI:
+  - Ensure backend wallet has Sepolia ETH
+  - Ensure CONTRACT_ADDRESS is correct and deployed
+  - Ensure signer is registered in contract
+- `EADDRINUSE: 5000`:
+  - Kill process using port 5000 and restart backend
+- Verify page says hash invalid:
+  - Use Log Hash (SHA-256), not transaction hash
+
+## Security Note
+
+Do not commit real secrets in `.env`.
+If secrets were exposed, rotate them immediately:
+- wallet private key
+- RPC key
+- IPFS credentials
 ```
 
 ## 🔐 Security Features

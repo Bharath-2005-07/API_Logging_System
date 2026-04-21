@@ -60,6 +60,31 @@ class BlockchainService {
   }
 
   /**
+   * Normalize signature value to a valid BytesLike for ethers v6.
+   */
+  normalizeBytesSignature(signature) {
+    if (signature == null) {
+      return '0x';
+    }
+
+    if (typeof signature !== 'string') {
+      return ethers.hexlify(signature);
+    }
+
+    if (/^0x[a-fA-F0-9]*$/.test(signature)) {
+      return signature;
+    }
+
+    // Hex without 0x prefix.
+    if (/^[a-fA-F0-9]+$/.test(signature)) {
+      return `0x${signature}`;
+    }
+
+    // Fallback for non-hex signature text.
+    return ethers.hexlify(ethers.toUtf8Bytes(signature));
+  }
+
+  /**
    * Ensure contract signer wallet is registered once.
    */
   async ensureSignerRegistered() {
@@ -68,7 +93,20 @@ class BlockchainService {
     }
 
     try {
-      const exists = await this.contract.userExists(this.signer.address);
+      let exists = false;
+
+      // Support contracts/ABIs that don't expose userExists.
+      if (typeof this.contract.userExists === 'function') {
+        exists = await this.contract.userExists(this.signer.address);
+      } else {
+        try {
+          await this.contract.getUserStats(this.signer.address);
+          exists = true;
+        } catch (statsError) {
+          exists = false;
+        }
+      }
+
       if (!exists) {
         const serviceUserId = process.env.BLOCKCHAIN_SERVICE_USER_ID || 'backend_service';
         const tx = await this.contract.registerUser(serviceUserId);
@@ -93,10 +131,11 @@ class BlockchainService {
 
       await this.ensureSignerRegistered();
       const onChainIpfsKey = this.toOnChainIpfsKey(ipfsHash);
+      const encodedSignature = this.normalizeBytesSignature(signature);
       
       const tx = await this.contract.storeLog(
         onChainIpfsKey,
-        signature,
+        encodedSignature,
         userId,
         endpoint,
         statusCode,

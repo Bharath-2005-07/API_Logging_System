@@ -64,7 +64,7 @@ function App() {
             path="/login" 
             element={
               isAuthenticated ? 
-              <DashboardPage /> : 
+              <DashboardPage isAuthenticated={isAuthenticated} /> : 
               <LoginPage onLogin={handleLogin} />
             } 
           />
@@ -72,7 +72,7 @@ function App() {
             path="/register" 
             element={
               isAuthenticated ? 
-              <DashboardPage /> : 
+              <DashboardPage isAuthenticated={isAuthenticated} /> : 
               <RegisterPage onRegister={handleLogin} />
             } 
           />
@@ -82,7 +82,7 @@ function App() {
             path="/dashboard"
             element={
               <PrivateRoute isAuthenticated={isAuthenticated}>
-                <DashboardPage />
+                <DashboardPage isAuthenticated={isAuthenticated} />
               </PrivateRoute>
             }
           />

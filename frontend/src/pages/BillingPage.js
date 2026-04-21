@@ -400,23 +400,6 @@ function BillingPage() {
         </div>
       </div>
 
-      {/* Payment Methods */}
-      <div className="payment-section">
-        <h2>💳 Payment Methods</h2>
-        <div className="payment-info">
-          <p>We currently accept the following payment methods:</p>
-          <ul className="payment-methods">
-            <li>🏦 Bank Transfer</li>
-            <li>💳 Credit/Debit Card</li>
-            <li>🪙 Cryptocurrency (ETH, USDC)</li>
-            <li>💰 Wire Transfer</li>
-          </ul>
-          <button className="btn btn-primary">
-            Add Payment Method
-          </button>
-        </div>
-      </div>
-
       {/* Payment Modal */}
       {showPaymentModal && (
         <div className="modal-overlay" onClick={() => !isProcessing && setShowPaymentModal(false)}>
